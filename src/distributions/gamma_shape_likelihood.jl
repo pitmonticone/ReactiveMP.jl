@@ -45,7 +45,19 @@ function approximate_prod_expectations(approximation::GaussLaguerreQuadrature, l
     # calculate variance
     v = approximate(approximation, vf)
 
-    return logC, m, v
+    logf = let f=f,b=b,C=logC
+        x -> f(x/b) * log(x/b)*exp(-C)/b
+    end
+
+    logm= approximate(approximation,logf)
+
+    logf2 = let f=f,b=b,C=logC
+        x -> f(x/b) * (log(x/b)-logm)^2*exp(-C)/b
+    end
+
+    logm2 = approximate(approximation, logf2)
+
+    return logC, m, v, logm,logm2
 end
 
 function prod(::ProdPreserveParametrisation, left::GammaShapeLikelihood, right::GammaShapeLikelihood)
@@ -58,10 +70,80 @@ function prod(::ProdPreserveParametrisation, left::GammaShapeLikelihood, right::
 end
 
 function prod(::ProdPreserveParametrisation, left::GammaDistributionsFamily, right::GammaShapeLikelihood)
-    _, m, v = approximate_prod_expectations(right.approximation, left, right)
 
-    a = m ^ 2 / v
-    b = m / v
+    logC, m, v, logm,logm2  = approximate_prod_expectations(right.approximation,left,right)
+    log_partition(x) = -loggamma(x[1]) + x[1]*log(x[2]) - (x[1]-m^2/v)^2 - (x[2]-m/v)^2 - (x[1]-m*x[2])-(digamma(x[1]) - log(x[2]) - logm)^2
+    # @show logC, m, v, logm,logm2
+    θ = gradientOptimization(log_partition, natural_gradient, [shape(left) ; rate(left)], 0.01)
+    # @show θ[1]/ θ[2]
+    return GammaShapeRate(θ[1], θ[2])
+end
 
-    return GammaShapeRate(a, b)
+
+using ForwardDiff
+
+function natural_gradient(f::Function,point)
+    n = length(point)
+    grad_f(z) = ForwardDiff.gradient(f,z)
+    hessian_f(z) = ForwardDiff.hessian(f,z)
+    nat_grad = -inv(hessian_f(point))*grad_f(point)
+    nat_grad, inv(hessian_f(point))
+    return nat_grad
+end
+
+function gradientOptimization(log_partition::Function, natural_gradient::Function, m_initial, step_size)
+
+    dim_tot = length(m_initial)
+    m_total = zeros(dim_tot)
+    m_average = zeros(dim_tot)
+    m_new = zeros(dim_tot)
+    m_old = m_initial
+    satisfied = false
+    step_count = 0
+    positive = false
+    # @show m_old, log_partition(m_old)
+
+    while !satisfied && !positive
+
+        m_new = m_old .+ step_size.*natural_gradient(log_partition,m_old)
+        if (m_new .> 0)[1] && (m_new .> 0)[2]
+            positive = true
+        else
+            m_new = abs.(m_new)
+        end
+        if (log_partition(m_new) > log_partition(m_old))
+            proposal_step_size = 10*step_size
+            m_proposal = m_old .+ proposal_step_size.*natural_gradient(log_partition,m_old)
+            if (m_proposal .> 0)[1] && (m_proposal .> 0)[2]
+                positive = true
+            else
+                m_proposal = abs.(m_proposal)
+            end
+            if log_partition(m_proposal) > log_partition(m_new)
+                m_new = m_proposal
+                step_size = proposal_step_size
+            end
+        else
+            step_size = 0.1*step_size
+            m_new = m_old .+ step_size.*natural_gradient(log_partition,m_old)
+        end
+
+        step_count += 1
+        m_total .+= m_old
+        m_average = m_total ./ step_count
+        if step_count > 10
+            if sum(sqrt.(((m_new.-m_average)./m_average).^2)) < dim_tot*0.00001
+                satisfied = true
+            end
+        end
+        if step_count > dim_tot*250
+            satisfied = true
+        end
+
+
+
+        m_old = m_new
+    end
+
+    return m_new
 end

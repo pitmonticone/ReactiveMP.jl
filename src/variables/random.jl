@@ -17,7 +17,7 @@ strategy_fn(::AllAtOnceProdStrategy) = all_reduce_to_marginal
 
 mutable struct RandomVariableProps
     marginal :: Union{Nothing, MarginalObservable}
-    portal   :: AbstractPortal 
+    portal   :: AbstractPortal
 
     RandomVariableProps() = new(nothing, EmptyPortal())
 end
@@ -31,7 +31,7 @@ struct RandomVariable{S} <: AbstractVariable
     prod_strategy :: S
 end
 
-function randomvar(name::Symbol; prod_strategy = AllAtOnceProdStrategy()) 
+function randomvar(name::Symbol; prod_strategy = AllAtOnceProdStrategy())
     return RandomVariable(name, Vector{LazyObservable{AbstractMessage}}(), RandomVariableProps(), prod_strategy)
 end
 
