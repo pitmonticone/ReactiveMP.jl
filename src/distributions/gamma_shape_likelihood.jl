@@ -10,6 +10,11 @@ struct GammaShapeLikelihood{T <: Real, A}
     approximation :: A
 end
 
+using FastGaussQuadrature: gausslaguerre
+"""
+    ν(x) ∝ exp(p*β*x - π*logГ(x)) ≡ exp(γ*x - p*logГ(x))
+"""
+
 function approximate_prod_expectations(approximation::GaussLaguerreQuadrature, left::GammaDistributionsFamily, right::GammaShapeLikelihood)
     b = rate(left)
 
@@ -42,22 +47,17 @@ function approximate_prod_expectations(approximation::GaussLaguerreQuadrature, l
         x -> (x - m) ^ 2 * exp(logf(x) - logC)
     end
 
+    logmf = let logf = logf, logC = logC, m = m
+        x -> log(x) * exp(logf(x) - logC)
+    end
+
+    logm = approximate(approximation,logmf)
+
+
     # calculate variance
     v = approximate(approximation, vf)
 
-    logf = let f=f,b=b,C=logC
-        x -> f(x/b) * log(x/b)*exp(-C)/b
-    end
-
-    logm= approximate(approximation,logf)
-
-    logf2 = let f=f,b=b,C=logC
-        x -> f(x/b) * (log(x/b)-logm)^2*exp(-C)/b
-    end
-
-    logm2 = approximate(approximation, logf2)
-
-    return logC, m, v, logm,logm2
+    return logC, m, v, logm
 end
 
 function prod(::ProdPreserveParametrisation, left::GammaShapeLikelihood, right::GammaShapeLikelihood)
@@ -71,14 +71,22 @@ end
 
 function prod(::ProdPreserveParametrisation, left::GammaDistributionsFamily, right::GammaShapeLikelihood)
 
-    logC, m, v, logm,logm2  = approximate_prod_expectations(right.approximation,left,right)
-    log_partition(x) = -loggamma(x[1]) + x[1]*log(x[2]) - (x[1]-m^2/v)^2 - (x[2]-m/v)^2 - (x[1]-m*x[2])-(digamma(x[1]) - log(x[2]) - logm)^2
+    logC, m, v, logm = approximate_prod_expectations(right.approximation,left,right)
+    log_partition(x) = -loggamma(x[1]) + x[1]*log(x[2]) - (x[1]-m^2/v)^2 - (x[2]-m/v)^2 - (x[1]-m*x[2]) - (digamma(x[1]) - log(x[2]) - logm)
     # @show logC, m, v, logm,logm2
-    θ = gradientOptimization(log_partition, natural_gradient, [shape(left) ; rate(left)], 0.01)
-    # @show θ[1]/ θ[2]
+    θ = gradientOptimization(log_partition, natural_gradient, [1.5 ; 1.5], 0.01)
+    @show θ[1], θ[2]
     return GammaShapeRate(θ[1], θ[2])
 end
 
+# function prod(::ProdPreserveParametrisation, left::GammaDistributionsFamily, right::GammaShapeLikelihood)
+#     _, m, v,_ = approximate_prod_expectations(right.approximation, left, right)
+#
+#     a = m ^ 2 / v
+#     b = m / v
+#
+#     return GammaShapeRate(a, b)
+# end
 
 using ForwardDiff
 
@@ -96,15 +104,13 @@ function gradientOptimization(log_partition::Function, natural_gradient::Functio
     dim_tot = length(m_initial)
     m_total = zeros(dim_tot)
     m_average = zeros(dim_tot)
-    m_new = zeros(dim_tot)
+    m_new = ones(dim_tot)
     m_old = m_initial
     satisfied = false
     step_count = 0
     positive = false
-    # @show m_old, log_partition(m_old)
 
     while !satisfied && !positive
-
         m_new = m_old .+ step_size.*natural_gradient(log_partition,m_old)
         if (m_new .> 0)[1] && (m_new .> 0)[2]
             positive = true
@@ -140,7 +146,11 @@ function gradientOptimization(log_partition::Function, natural_gradient::Functio
             satisfied = true
         end
 
-
+        if (m_new .> 0)[1] && (m_new .> 0)[2]
+            positive = true
+        else
+            m_new = abs.(m_new)
+        end
 
         m_old = m_new
     end
