@@ -72,10 +72,11 @@ end
 function prod(::ProdPreserveParametrisation, left::GammaDistributionsFamily, right::GammaShapeLikelihood)
 
     logC, m, v, logm = approximate_prod_expectations(right.approximation,left,right)
-    log_partition(x) = -loggamma(x[1]) + x[1]*log(x[2]) - (x[1]-m^2/v)^2 - (x[2]-m/v)^2 - (x[1]-m*x[2]) - (digamma(x[1]) - log(x[2]) - logm)
-    # @show logC, m, v, logm,logm2
-    θ = gradientOptimization(log_partition, natural_gradient, [1.5 ; 1.5], 0.01)
-    @show θ[1], θ[2]
+    # log_partition(x) = -loggamma(x[1]) + x[1]*log(x[2]) - (x[1]-m^2/v)^2 - (x[2]-m/v)^2 - (x[1]-m*x[2]) - (digamma(x[1]) - log(x[2]) - logm)
+    log_partition(x) = -loggamma(x[1]) + x[1]*log(x[2]) - 0.1*(x[1] - shape(left))^2  - 0.1*(x[2] - rate(left))^2
+    # @show logC, m, v, logm
+    θ = gradientOptimization(log_partition, natural_gradient, [shape(left);rate(left)], 0.01)
+    # @show θ[1], θ[2]
     return GammaShapeRate(θ[1], θ[2])
 end
 
@@ -100,7 +101,7 @@ function natural_gradient(f::Function,point)
 end
 
 function gradientOptimization(log_partition::Function, natural_gradient::Function, m_initial, step_size)
-
+    # println("gradient optimization begin, initial params:  ", m_initial)
     dim_tot = length(m_initial)
     m_total = zeros(dim_tot)
     m_average = zeros(dim_tot)
@@ -110,13 +111,13 @@ function gradientOptimization(log_partition::Function, natural_gradient::Functio
     step_count = 0
     positive = false
 
-    while !satisfied && !positive
+    while !satisfied
         m_new = m_old .+ step_size.*natural_gradient(log_partition,m_old)
-        if (m_new .> 0)[1] && (m_new .> 0)[2]
-            positive = true
-        else
-            m_new = abs.(m_new)
-        end
+        # if (m_new .> 0)[1] && (m_new .> 0)[2]
+        #     positive = true
+        # else
+        #     m_new = abs.(m_new)
+        # end
         if (log_partition(m_new) > log_partition(m_old))
             proposal_step_size = 10*step_size
             m_proposal = m_old .+ proposal_step_size.*natural_gradient(log_partition,m_old)
@@ -146,14 +147,10 @@ function gradientOptimization(log_partition::Function, natural_gradient::Functio
             satisfied = true
         end
 
-        if (m_new .> 0)[1] && (m_new .> 0)[2]
-            positive = true
-        else
-            m_new = abs.(m_new)
-        end
-
         m_old = m_new
     end
+
+    # println("gradient descent finished params: ", m_new)
 
     return m_new
 end
