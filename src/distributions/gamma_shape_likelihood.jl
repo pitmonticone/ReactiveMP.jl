@@ -71,13 +71,27 @@ end
 
 function prod(::ProdPreserveParametrisation, left::GammaDistributionsFamily, right::GammaShapeLikelihood)
 
-    logC, m, v, logm = approximate_prod_expectations(right.approximation,left,right)
-    # log_partition(x) = -loggamma(x[1]) + x[1]*log(x[2]) - (x[1]-m^2/v)^2 - (x[2]-m/v)^2 - (x[1]-m*x[2]) - (digamma(x[1]) - log(x[2]) - logm)
-    log_partition(x) = -loggamma(x[1]) + x[1]*log(x[2]) - 0.1*(x[1] - shape(left))^2  - 0.1*(x[2] - rate(left))^2
-    # @show logC, m, v, logm
-    θ = gradientOptimization(log_partition, natural_gradient, [shape(left);rate(left)], 0.01)
-    # @show θ[1], θ[2]
-    return GammaShapeRate(θ[1], θ[2])
+    a = shape(left)
+    b = rate(left)
+    p = right.p
+    g = right.γ
+    λ = -0.1
+    prior(x) = ((a .- 1) .* log.(x) .- b .* x .+ a .* log.(b) .- loggamma.(a))
+    multip(x) = (p .* x .- g*loggamma.(x) .+ (a .- 1) .* log.(x) .- b .* x .+ a .* log.(b) .- loggamma.(a) ) + 2/λ*((x .- 0.001)^2)- λ*(log(0.001))
+
+    d(x) = ForwardDiff.derivative(multip,x)
+    dprime(x) = ForwardDiff.derivative(d,x)
+    grad(x) = d(x)/dprime(x)
+    x0 = gradientOptimization(multip,grad,5.0,0.001)
+
+    η = -0.00001
+    multip2(x) = (-g*trigamma.(x0) .- (x .- 1) .* 1/x0^2 )
+    approximate_log_partition(x) =  2/η*((x[1] .- 0.001)^2 .+ (x[2] .- 0.001)^2)- η*(log(0.001) + log(0.001)) .+ 0.5*log(2*pi) - 0.5*log(abs(multip2(x[1])))+(p .* x0 .- g*loggamma.(x0) .+ (x[1] .- 1) .* log.(x0) .- x[2] .* x0 .+ x[1] .* log.(x[2]) .- loggamma.(x[1]) )
+    dlog(x) = ForwardDiff.gradient(approximate_log_partition,x)
+    ddlog(x) = ForwardDiff.hessian(approximate_log_partition,x)
+    direction(x) = inv(ddlog(x))*dlog(x)
+    est = gradientOptimization(approximate_log_partition,direction,[a,b],0.1)
+    return GammaShapeRate(est[1], est[2])
 end
 
 # function prod(::ProdPreserveParametrisation, left::GammaDistributionsFamily, right::GammaShapeLikelihood)
@@ -91,66 +105,44 @@ end
 
 using ForwardDiff
 
-function natural_gradient(f::Function,point)
-    n = length(point)
-    grad_f(z) = ForwardDiff.gradient(f,z)
-    hessian_f(z) = ForwardDiff.hessian(f,z)
-    nat_grad = -inv(hessian_f(point))*grad_f(point)
-    nat_grad, inv(hessian_f(point))
-    return nat_grad
-end
-
-function gradientOptimization(log_partition::Function, natural_gradient::Function, m_initial, step_size)
-    # println("gradient optimization begin, initial params:  ", m_initial)
+using DataStructures
+function gradientOptimization(log_joint::Function, d_log_joint::Function, m_initial, step_size)
     dim_tot = length(m_initial)
     m_total = zeros(dim_tot)
     m_average = zeros(dim_tot)
-    m_new = ones(dim_tot)
+    m_new = zeros(dim_tot)
     m_old = m_initial
     satisfied = false
     step_count = 0
-    positive = false
-
+    m_latests = if dim_tot == 1 Queue{Float64}() else Queue{Vector}() end
     while !satisfied
-        m_new = m_old .+ step_size.*natural_gradient(log_partition,m_old)
-        # if (m_new .> 0)[1] && (m_new .> 0)[2]
-        #     positive = true
-        # else
-        #     m_new = abs.(m_new)
-        # end
-        if (log_partition(m_new) > log_partition(m_old))
+        m_new = m_old .+ step_size.*d_log_joint(m_old)
+        # @show m_new,d_log_joint(m_old)
+        if log_joint(m_new) > log_joint(m_old)
             proposal_step_size = 10*step_size
-            m_proposal = m_old .+ proposal_step_size.*natural_gradient(log_partition,m_old)
-            if (m_proposal .> 0)[1] && (m_proposal .> 0)[2]
-                positive = true
-            else
-                m_proposal = abs.(m_proposal)
-            end
-            if log_partition(m_proposal) > log_partition(m_new)
+            m_proposal = m_old .+ proposal_step_size.*d_log_joint(m_old)
+            if log_joint(m_proposal) > log_joint(m_new)
                 m_new = m_proposal
                 step_size = proposal_step_size
             end
         else
             step_size = 0.1*step_size
-            m_new = m_old .+ step_size.*natural_gradient(log_partition,m_old)
+            m_new = m_old .+ step_size.*d_log_joint(m_old)
         end
-
         step_count += 1
-        m_total .+= m_old
-        m_average = m_total ./ step_count
+        enqueue!(m_latests, m_old)
         if step_count > 10
-            if sum(sqrt.(((m_new.-m_average)./m_average).^2)) < dim_tot*0.00001
+            m_average = sum(x for x in m_latests)./10
+            if sum(sqrt.(((m_new.-m_average)./m_average).^2)) < dim_tot*0.1
                 satisfied = true
             end
+            dequeue!(m_latests);
         end
         if step_count > dim_tot*250
             satisfied = true
         end
-
         m_old = m_new
     end
-
-    # println("gradient descent finished params: ", m_new)
 
     return m_new
 end
