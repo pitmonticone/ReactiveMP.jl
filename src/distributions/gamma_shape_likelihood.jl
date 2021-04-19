@@ -1,6 +1,7 @@
 import SpecialFunctions: loggamma
 using Distributions
-using Optim
+using JuMP
+using Ipopt
 
 """
     ν(x) ∝ exp(p*β*x - p*logГ(x)) ≡ exp(γ*x - p*logГ(x))
@@ -101,12 +102,16 @@ function prod(::ProdExpectationMaximisation, left::GammaDistributionsFamily, rig
     a, b = shape(left), rate(left)
     γ, p = right.γ, right.p
 
-    f(x) = (a-1)*log(x[1]) - b*x[1] + γ*x[1] - p*loggamma(x[1]) - loggamma(a) + a*log(b)
+    model_a = Model(Ipopt.Optimizer)
+    register(model_a, :loggamma, 1, loggamma; autodiff = true)
+    @variable(model_a, x, start=mean(left))
+    @constraint(model_a, x >= 1e-12)
+    @NLobjective(model_a, Min, (a-1)*log(x) - b*x + γ*x - p*loggamma(x) - loggamma(a) + a*log(b))
+    optimize!(model_a)
 
-    x_0 = [ mean(left) ]
-    res = optimize(x -> -f(x), [ 0.0 ], [ Inf ], x_0, Fminbox(GradientDescent()))
-
-    â = Optim.minimizer(res)[1]
+    â = value(x)
 
     return PointMass(â)
 end
+
+
