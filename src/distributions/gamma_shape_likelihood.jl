@@ -14,7 +14,7 @@ end
 
 Base.show(io::IO, distribution::GammaShapeLikelihood{T}) where T = print(io, "GammaShapeLikelihood{$T}(π = $(distribution.p), γ = $(distribution.γ))")
 
-Distributions.logpdf(distribution::GammaShapeLikelihood, x) = distribution.γ * x - distribution.p * loggamma(x)
+Distributions.logpdf(distribution::GammaShapeLikelihood, x) = distribution.γ * x - distribution.p * loggamma.(x)
 
 function approximate_prod_expectations(approximation::GaussLaguerreQuadrature, left::GammaDistributionsFamily, right::GammaShapeLikelihood)
     b = rate(left)
@@ -67,27 +67,34 @@ function approximate_prod_expectations(approximation::GaussLaguerreQuadrature2, 
             = exp(-x) * exp((γ-b+1)*x + (a-1)*ln(x) - p*ln(Г(x)))
     """
     f = let p = right.p, a = shape(left), γ = right.γ, b = b
-        x -> exp((γ - b + 1) * x - p * loggamma(x) + (a - 1) * log(x))
+        x -> exp((γ - b + 1) * x - p * loggamma(x) + (a - 1) * log(x)-loggamma(a))*(b)^a
         # x -> exp((γ - b + 1) * x - p * loggamma(x))
+        # x -> exp(γ* x/b - p * loggamma(x/b)-loggamma(a))
     end
 
     logf = let p = right.p, a = shape(left), γ = right.γ, b = b
-        x -> (γ - b + 1) * x - p * loggamma(x) + (a - 1) * log(x)
-        # x -> (γ - b + 1) * x - p * loggamma(x)
+        x -> (γ - b + 1) * x - p * loggamma(x) + (a - 1) * log(x)-loggamma(a) + a*log(b)
+        # x -> (γ/b) * x - p * loggamma(x/b)-loggamma(a)
     end
 
     # # calculate log-normalization constant
-    logC = log_approximate(approximation, 0.0, logf)
+    logC = log_approximate(approximation, 0.0, logf) 
+    # logC = 0.0
 
-    # C = approximate(approximation, alpha1, f)
+    C = approximate(approximation, 0.0, f)
 
     # # mean function without explicitly calculating the normalization constant
     mf = let logf = logf, logC = logC
-        x -> exp(logf(x) - logC)
+        x -> exp(logf(x) - logC )
+    end
+
+    logmf = let logf =logf, logC=logC
+        x -> exp(logf(x)-logC)*log(x)
     end
 
     # # calculate mean
     m = approximate(approximation, 1.0, mf)
+    logm = approximate(approximation,0.0,logmf)
 
     # variance function without explicitly calculating the normalization constant
     vf = let logf = logf, logC = logC, m = m
