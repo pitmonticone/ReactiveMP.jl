@@ -54,6 +54,52 @@ function approximate_prod_expectations(approximation::GaussLaguerreQuadrature, l
     return m, v
 end
 
+function approximate_prod_expectations(approximation::GaussLaguerreQuadrature2, left::GammaDistributionsFamily, right::GammaShapeLikelihood)
+    b = rate(left)
+
+    alpha1 = (shape(left) - 1)
+
+    # @show alpha1
+
+    """
+    q(x)    ∝ v(x)*v(x)
+            ∝ exp(γ*x - p*ln(Г(x))) * exp((a-1)*ln(x) - b*x)
+            = exp(-x) * exp((γ-b+1)*x + (a-1)*ln(x) - p*ln(Г(x)))
+    """
+    f = let p = right.p, a = shape(left), γ = right.γ, b = b
+        x -> exp((γ - b + 1) * x - p * loggamma(x) + (a - 1) * log(x))
+        # x -> exp((γ - b + 1) * x - p * loggamma(x))
+    end
+
+    logf = let p = right.p, a = shape(left), γ = right.γ, b = b
+        x -> (γ - b + 1) * x - p * loggamma(x) + (a - 1) * log(x)
+        # x -> (γ - b + 1) * x - p * loggamma(x)
+    end
+
+    # # calculate log-normalization constant
+    logC = log_approximate(approximation, 0.0, logf)
+
+    # C = approximate(approximation, alpha1, f)
+
+    # # mean function without explicitly calculating the normalization constant
+    mf = let logf = logf, logC = logC
+        x -> exp(logf(x) - logC)
+    end
+
+    # # calculate mean
+    m = approximate(approximation, 1.0, mf)
+
+    # variance function without explicitly calculating the normalization constant
+    vf = let logf = logf, logC = logC, m = m
+        x -> (x - m) ^ 2 * exp(logf(x) - logC)
+    end
+
+    # calculate variance
+    v = approximate(approximation, 0.0, vf)
+
+    return m, v
+end
+
 function approximate_prod_expectations(approximation::ImportanceSamplingApproximation, left::GammaDistributionsFamily, right::GammaShapeLikelihood)
  
     f = let p = right.p, γ = right.γ
