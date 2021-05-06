@@ -22,7 +22,7 @@ Distributions.logpdf(dist::MvExponentialLinearQuadratic, x::Array{Float64}) = -0
 Distributions.mean(dist::MvExponentialLinearQuadratic)            = approximate_meancov(dist.approximation, (z) -> pdf(dist, z) * exp(0.5 * z'*z), MvNormalMeanCovariance(zeros(dims(dist)),Diagonal(ones(dims(dist)))))[1]
 Distributions.var(dist::MvExponentialLinearQuadratic)             = approximate_meancov(dist.approximation, (z) -> pdf(dist, z) * exp(0.5 * z'*z), MvNormalMeanCovariance(zeros(dims(dist)),Diagonal(ones(dims(dist)))))[2]
 Distributions.cov(dist::MvExponentialLinearQuadratic)             = var(dist)
-
+precision(dist:::MvExponentialLinearQuadratic)                    = inv(var(dist))
 function prod(::ProdPreserveParametrisation, left::MultivariateNormalDistributionsFamily, right::MvExponentialLinearQuadratic)
     mean, variance = approximate_meancov(right.approximation, (z) -> pdf(right, z), left)
     return MvNormalMeanCovariance(mean, variance)
