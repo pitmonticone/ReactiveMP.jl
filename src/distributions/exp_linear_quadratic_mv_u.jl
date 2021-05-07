@@ -12,7 +12,7 @@ struct MvUniExponentialLinearQuadratic{ A <: AbstractApproximationMethod, T <: R
     f :: M
 end
 
-function MvUniExponentialLinearQuadratic(approximation, a::Real, b::Real, c::AbstractVector{ <: Real}, d::AbstractVector{ <: Real},e::AbstractVector{ <: Real},f::::AbstractVector{ <: Real})          
+function MvUniExponentialLinearQuadratic(approximation, a::Real, b::Real, c::AbstractVector{ <: Real}, d::AbstractVector{ <: Real},e::AbstractVector{ <: Real},f::AbstractVector{ <: Real})          
     T = promote_type(eltype(c),eltype(d), eltype(e),eltype(f))
     MvUniExponentialLinearQuadratic(approximation, promote(a),promote(b),convert(AbstractArray{T},c),convert(AbstractArray{T},d),convert(AbstractArray{T},e),convert(AbstractArray{T},f))
 end
@@ -23,7 +23,7 @@ Distributions.logpdf(dist::MvUniExponentialLinearQuadratic, x::Real) = -0.5 * (d
 Distributions.mean(dist::MvUniExponentialLinearQuadratic)            = approximate_meancov(dist.approximation, (z) -> pdf(dist, z) * exp(0.5 * z^2), NormalMeanVariance(0.0,1.0))[1]
 Distributions.var(dist::MvUniExponentialLinearQuadratic)             = approximate_meancov(dist.approximation, (z) -> pdf(dist, z) * exp(0.5 * z^2), NormalMeanVariance(0.0,1.0))[2]
 Distributions.cov(dist::MvUniExponentialLinearQuadratic)             = var(dist)
-precision(dist:::MvUniExponentialLinearQuadratic)                    = inv(var(dist))
+precision(dist::MvUniExponentialLinearQuadratic)                    = inv(var(dist))
 
 function prod(::ProdPreserveParametrisation, left::UnivariateNormalDistributionsFamily, right::MvUniExponentialLinearQuadratic)
     mean, variance = approximate_meancov(right.approximation, (z) -> pdf(right, z), left)
