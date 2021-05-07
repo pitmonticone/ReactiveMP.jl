@@ -1,6 +1,6 @@
 export rule
 
-@rule SGCV(:s, Marginalisation) (q_y_x::Any, q_z::Any, q_κ::Any, q_ω::Any, meta::GCVMetadata) = begin
+@rule SGCV(:s, Marginalisation) (q_y_x::Any, q_z::Any, q_κ::Any, q_ω::Any, meta::SGCVMetadata) = begin
     
     m, v = mean(q_y_x), cov(q_y_x)
     mω, vω = mean(q_ω), cov(q_ω)
@@ -12,7 +12,6 @@ export rule
     B = exp.(-mκ .* mz .+ 0.5(mκ.^2*vz .+ mz^2 .* diag(vκ) + diag(vκ) .* vz))
     r = exp.(-0.5.*(mκ .* mz .+ mω + ψ1(q_y_x) .* A .* B))
     ρ = r ./ sum(r)
-
     return Categorical( ρ)
 
     

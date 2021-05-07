@@ -10,7 +10,7 @@ export marginalrule
 end
 
 function η(z, κ, ω, s)
-    ms = mean(s)
+    ms = probvec(s)
     mω, Vω = mean(ω), cov(ω)
     mz, vz = mean(z), cov(z)
     mκ, Vκ = mean(κ), cov(κ)
