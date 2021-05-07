@@ -1,11 +1,11 @@
 export rule
 
-@rule SGCV(:ω, Marginalisation) (q_y_x::Any, q_z::Any, q_κ::Any, q_s::Any, meta::GCVMetadata) = begin
+@rule SGCV(:ω, Marginalisation) (q_y_x::Any, q_z::Any, q_κ::Any, q_s::Any, meta::SGCVMetadata) = begin
     
     m, v = mean(q_y_x), cov(q_y_x)
     mz, vz = mean(q_z), cov(q_z)
     mκ, vκ = mean(q_κ), cov(q_κ)
-    ms = mean(q_s)
+    ms = probvec(q_s)
 
     psi = (m[1] - m[2]) ^ 2 + v[1, 1] + v[2, 2] - v[1, 2] - v[2, 1]
 
