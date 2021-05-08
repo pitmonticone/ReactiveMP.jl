@@ -8,16 +8,14 @@ export rule
     mκ, vκ = mean(q_κ), cov(q_κ)
 
 
+    
     A = exp.(-mω+0.5diag(vω))
     B = exp.(-mκ .* mz .+ 0.5(mκ.^2*vz .+ mz^2 .* diag(vκ) + diag(vκ) .* vz))
-    r = exp.(-0.5.*(mκ .* mz .+ mω + ψ1(q_y_x) .* A .* B))
-    ρ = r ./ sum(r)
-    return Categorical( ρ)
+    r = exp.(-0.5.*(mκ .* mz .+ mω + ψ(q_y_x) .* A .* B))
+    ρ = clamp.(softmax(r), tiny, 1.0 - tiny)
+    ρ = ρ ./ sum(ρ)
+
+    return Categorical(ρ )
 
     
-end
-
-function ψ1(yx)
-    m, V = mean(yx),cov(yx)
-    return (m[1] - m[2])*(m[1] - m[2]) + V[1] + V[4] - V[3] - V[2]
 end

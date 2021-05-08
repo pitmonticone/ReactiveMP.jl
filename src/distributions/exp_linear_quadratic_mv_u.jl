@@ -21,11 +21,17 @@ end
 Distributions.pdf(dist::MvUniExponentialLinearQuadratic, x::Real)    = exp(logpdf(dist, x))
 Distributions.logpdf(dist::MvUniExponentialLinearQuadratic, x::Real) = -0.5 * (dist.a * x + dist.b + dist.c' * exp.(dist.d .* x + dist.e + 0.5 .* dist.f .* x^2 ))
 Distributions.mean(dist::MvUniExponentialLinearQuadratic)            = approximate_meancov(dist.approximation, (z) -> pdf(dist, z) * exp(0.5 * z^2), NormalMeanVariance(0.0,1.0))[1]
-Distributions.var(dist::MvUniExponentialLinearQuadratic)             = approximate_meancov(dist.approximation, (z) -> pdf(dist, z) * exp(0.5 * z^2), NormalMeanVariance(0.0,1.0))[2]
-Distributions.cov(dist::MvUniExponentialLinearQuadratic)             = var(dist)
-precision(dist::MvUniExponentialLinearQuadratic)                    = inv(var(dist))
+Distributions.cov(dist::MvUniExponentialLinearQuadratic)             = approximate_meancov(dist.approximation, (z) -> pdf(dist, z) * exp(0.5 * z^2), NormalMeanVariance(0.0,1.0))[2]
+Distributions.var(dist::MvUniExponentialLinearQuadratic)             = diag(cov(dist))
 
+precision(dist::MvUniExponentialLinearQuadratic)                    = cholinv(cov(dist))
+invcov(dist::MvUniExponentialLinearQuadratic)                       = precision(dist)
 function prod(::ProdPreserveParametrisation, left::UnivariateNormalDistributionsFamily, right::MvUniExponentialLinearQuadratic)
     mean, variance = approximate_meancov(right.approximation, (z) -> pdf(right, z), left)
     return NormalMeanVariance(mean, variance)
+end
+
+
+function prod(::ProdPreserveParametrisation, left::MvUniExponentialLinearQuadratic , right::UnivariateNormalDistributionsFamily)
+    return prod(ProdPreserveParametrisation(), right,left)
 end
