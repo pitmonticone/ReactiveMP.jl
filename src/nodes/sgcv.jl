@@ -37,5 +37,19 @@ end
     m_ω, var_ω = mean(q_ω),cov(q_ω)
     m_s = probvec(q_s)
 
-    0.5log(2*pi) + 0.5*(m_s'*m_κ*m_z + m_s'*m_ω) + 0.5*(ψ(q_y_x)*ϕ(q_z, q_κ, q_ω, q_s))
+    return 0.5log(2*pi) + 0.5*(m_s'*m_κ*m_z + m_s'*m_ω) + 0.5*(ψ(q_y_x)*ϕ(q_z, q_κ, q_ω, q_s))
+end
+
+@average_energy SGCV (q_y::NormalDistributionsFamily,q_x::NormalDistributionsFamily, q_z::NormalDistributionsFamily, q_κ::Any, q_ω::Any, q_s::Any) = begin
+    
+    my, vy = mean(q_y), cov(q_y)
+    mx, vx = mean(q_x), cov(q_x)
+    m_z, var_z = mean(q_z),cov(q_z)
+    m_κ, var_κ = mean(q_κ),cov(q_κ)
+    m_ω, var_ω = mean(q_ω),cov(q_ω)
+    m_s = probvec(q_s)
+
+    psi = (my - mx) ^ 2 + vy + vx
+
+    return 0.5log(2*pi) + 0.5*(m_s'*m_κ*m_z + m_s'*m_ω) + 0.5*(psi*ϕ(q_z, q_κ, q_ω, q_s))
 end
