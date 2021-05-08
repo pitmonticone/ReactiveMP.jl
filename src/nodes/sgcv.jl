@@ -37,5 +37,5 @@ end
     m_ω, var_ω = mean(q_ω),cov(q_ω)
     m_s = probvec(q_s)
 
-    0.5log(2*pi) + 0.5*(m_s'*m_κ*m_z + m_s'*m_ω) + 0.5*(ψ(marg_y_x)*ϕ(marg_z, marg_κ, marg_ω, marg_s))
+    0.5log(2*pi) + 0.5*(m_s'*m_κ*m_z + m_s'*m_ω) + 0.5*(ψ(q_y_x)*ϕ(q_z, q_κ, q_ω, q_s))
 end

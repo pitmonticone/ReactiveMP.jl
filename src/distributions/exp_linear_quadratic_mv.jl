@@ -20,10 +20,15 @@ dims(dist::MvExponentialLinearQuadratic) = length(dist.a)
 Distributions.pdf(dist::MvExponentialLinearQuadratic, x::Array{Float64})    = exp(logpdf(dist, x))
 Distributions.logpdf(dist::MvExponentialLinearQuadratic, x::Array{Float64}) = -0.5 * (dist.a' * x + dist.b' * exp.(dist.c .* x + 0.5 .* dist.d .* x.^ 2 ))
 Distributions.mean(dist::MvExponentialLinearQuadratic)            = approximate_meancov(dist.approximation, (z) -> pdf(dist, z) * exp(0.5 * z'*z), MvNormalMeanCovariance(zeros(dims(dist)),Diagonal(ones(dims(dist)))))[1]
-Distributions.var(dist::MvExponentialLinearQuadratic)             = approximate_meancov(dist.approximation, (z) -> pdf(dist, z) * exp(0.5 * z'*z), MvNormalMeanCovariance(zeros(dims(dist)),Diagonal(ones(dims(dist)))))[2]
-Distributions.cov(dist::MvExponentialLinearQuadratic)             = var(dist)
-precision(dist::MvExponentialLinearQuadratic)                    = inv(var(dist))
+Distributions.cov(dist::MvExponentialLinearQuadratic)             = approximate_meancov(dist.approximation, (z) -> pdf(dist, z) * exp(0.5 * z'*z), MvNormalMeanCovariance(zeros(dims(dist)),Diagonal(ones(dims(dist)))))[2]
+Distributions.var(dist::MvExponentialLinearQuadratic)             = diag(cov(dist))
+precision(dist::MvExponentialLinearQuadratic)                     = inv(cov(dist))
+invcov(dist::MvExponentialLinearQuadratic)                        = precision(dist)
 function prod(::ProdPreserveParametrisation, left::MultivariateNormalDistributionsFamily, right::MvExponentialLinearQuadratic)
     mean, variance = approximate_meancov(right.approximation, (z) -> pdf(right, z), left)
     return MvNormalMeanCovariance(mean, variance)
+end
+
+function prod(::ProdPreserveParametrisation, left::MvExponentialLinearQuadratic, right::MultivariateNormalDistributionsFamily)
+    return prod(ProdPreserveParametrisation(),right,left)
 end
