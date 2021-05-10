@@ -31,10 +31,11 @@ end
     
     A = exp.(-mω+0.5diag(vω))
     B = exp.(-mκ .* mz .+ 0.5(mκ.^2*vz .+ mz^2 .* diag(vκ) + diag(vκ) .* vz))
-    r = exp.(-0.5.*(mκ .* mz .+ mω + psi .* A .* B))
+    r = clamp.(exp.(-0.5.*(mκ .* mz .+ mω + psi .* A .* B)), tiny, huge)
     ρ = clamp.(softmax(r), tiny, 1.0 - tiny)
+    # @show r, A, B, psi
     ρ = ρ ./ sum(ρ)
-
+    
     return Categorical(ρ )
 
     
