@@ -20,8 +20,8 @@ end
 
 Distributions.pdf(dist::MvUniExponentialLinearQuadratic, x::Real)    = exp(logpdf(dist, x))
 Distributions.logpdf(dist::MvUniExponentialLinearQuadratic, x::Real) = -0.5 * (dist.a * x + dist.b + dist.c' * exp.(dist.d .* x + dist.e + 0.5 .* dist.f .* x^2 ))
-Distributions.mean(dist::MvUniExponentialLinearQuadratic)            = approximate_meancov(dist.approximation, (z) -> pdf(dist, z) * exp(0.5 * z^2), NormalMeanVariance(0.0,1.0))[1]
-Distributions.cov(dist::MvUniExponentialLinearQuadratic)             = approximate_meancov(dist.approximation, (z) -> pdf(dist, z) * exp(0.5 * z^2), NormalMeanVariance(0.0,1.0))[2]
+Distributions.mean(dist::MvUniExponentialLinearQuadratic)            = approximate_meancov(dist.approximation, (z) -> pdf(dist, z) * exp(0.5 * z^2)/sqrt(2pi), NormalMeanVariance(0.0,1.0))[1]
+Distributions.cov(dist::MvUniExponentialLinearQuadratic)             = approximate_meancov(dist.approximation, (z) -> pdf(dist, z) * exp(0.5 * z^2)/sqrt(2pi), NormalMeanVariance(0.0,1.0))[2]
 Distributions.var(dist::MvUniExponentialLinearQuadratic)             = diag(cov(dist))
 
 precision(dist::MvUniExponentialLinearQuadratic)                    = cholinv(cov(dist))

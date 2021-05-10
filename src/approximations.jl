@@ -10,36 +10,36 @@ function approximate_meancov(method::AbstractApproximationMethod, g::Function, d
     return approximate_meancov(method, g, mean(distribution), cov(distribution))
 end
 
-function approximate_meancov(method::AbstractApproximationMethod, g::Function, m::T, v::T) where { T <: Real }
-    weights = getweights(method, m, v)
-    points  = getpoints(method, m, v)
+# function approximate_meancov(method::AbstractApproximationMethod, g::Function, m::T, v::T) where { T <: Real }
+#     weights = getweights(method, m, v)
+#     points  = getpoints(method, m, v)
 
-    cs   = Vector{eltype(m)}(undef, length(weights))
-    norm = 0.0
-    mean = 0.0
+#     cs   = Vector{eltype(m)}(undef, length(weights))
+#     norm = 0.0
+#     mean = 0.0
 
-    for (index, (weight, point)) in enumerate(zip(weights, points))
-        gv = g(point)
-        cv = weight * gv
+#     for (index, (weight, point)) in enumerate(zip(weights, points))
+#         gv = g(point)
+#         cv = weight * gv
 
-        mean += point * cv
-        norm += cv
+#         mean += point * cv
+#         norm += cv
 
-        @inbounds cs[index] = cv
-    end
+#         @inbounds cs[index] = cv
+#     end
+#     @show norm
+#     mean /= norm
 
-    mean /= norm
+#     var = 0.0
+#     for (index, (point, c)) in enumerate(zip(points, cs))
+#         point -= mean
+#         var += c * point ^ 2
+#     end
 
-    var = 0.0
-    for (index, (point, c)) in enumerate(zip(points, cs))
-        point -= mean
-        var += c * point ^ 2
-    end
+#     var /= norm
 
-    var /= norm
-
-    return mean, var
-end
+#     return @show mean, var
+# end
 
 function approximate_meancov(method::AbstractApproximationMethod, g::Function, m::AbstractVector{T}, P::AbstractMatrix{T}) where { T <: Real }
     ndims = length(m)
@@ -92,4 +92,19 @@ function approximate_kernel_expectation(method::AbstractApproximationMethod, g::
     end
 
     return gbar
+end
+
+
+function approximate_meancov(method::AbstractApproximationMethod, g::Function, m::T, v::T) where { T <: Real }
+    weights = getweights(method, m, v)
+    points  = getpoints(method, m, v)
+
+    new_weights = weights .* g.(points) ./ sum(weights .* g.(points) )
+    @show g.(points)
+    sum(new_weights .* g.(points) ) 
+    mean = sum(new_weights .* points)
+    var = sum(new_weights .* (points .- mean).^2)
+
+
+    return mean,var
 end
