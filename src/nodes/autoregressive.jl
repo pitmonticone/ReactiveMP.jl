@@ -87,14 +87,17 @@ Returns `[ 1.0, 0.0 ... 0.0 ]` with length equal to order in case if T is Multiv
 """
 function ar_unit end
 
-function ar_unit(::Type{Multivariate}, order)
-    c    = zeros(order)
-    c[1] = 1.0
+ar_unit(::Type{ Multivariate }, order) = ar_unit(Float64, Multivariate, order)
+ar_unit(::Type{ Univariate }, order)   = ar_unit(Float64, Univariate, order)
+
+function ar_unit(::Type{T}, ::Type{Multivariate}, order) where { T <: Real }
+    c    = zeros(T, order)
+    c[1] = one(T)
     return c
 end
 
-function ar_unit(::Type{Univariate}, order)
-    return 1.0
+function ar_unit(::Type{T}, ::Type{Univariate}, order) where { T <: Real }
+    return one(T)
 end
 
 function ar_precision(::Type{Multivariate}, order, γ)
