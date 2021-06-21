@@ -8,10 +8,10 @@ export rule
 
     mA = as_companion_matrix(mθ)
     mV = ar_transition(getvform(meta), getorder(meta), mγ)
-
-    D = mA'*inv(Vy + mV)*mA + mγ*Vθ
-    Vx = inv(D)
-    mx = inv(D)*mA'*inv(Vy + mV)*my
+    invVymV = inv(Vy + mV)
+    
+    Vx = inv(mA'*invVymV*mA + mγ*Vθ)
+    mx = Vx*mA'*invVymV*my
 
     return convert(promote_variate_type(getvform(meta), NormalMeanVariance), mx, Vx)
 end
