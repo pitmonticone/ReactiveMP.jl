@@ -98,7 +98,7 @@ function ar_unit(::Type{Univariate}, order)
 end
 
 function ar_precision(::Type{Multivariate}, order, γ)
-    mw               = zeros(order, order)
+    mw               = zeros(typeof(γ), order, order)
     mw[diagind(mw)] .= huge
     mw[1, 1]         = γ
     return mw
@@ -109,7 +109,7 @@ function ar_precision(::Type{Univariate}, order, γ)
 end
 
 function ar_transition(::Type{Multivariate}, order, γ)
-    V = zeros(order, order)
+    V = zeros(typeof(γ), order, order)
     V[1] = 1/γ
     return V
 end

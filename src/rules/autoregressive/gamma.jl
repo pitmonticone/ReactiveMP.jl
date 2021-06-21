@@ -12,6 +12,8 @@ export rule
     Vyx    = ar_slice(F, Vyx, order+1:2order, 1:order)
 
     B = (Vy + my * my')[1, 1] - 2 * (mA * (Vyx + mx * my'))[1, 1] + (mA * (Vx + mx * mx') * mA')[1, 1] + tr(Vθ * (Vx + mx * mx'))
+    α = convert(typeof(B), 3 // 2)
+    β = B / 2
 
-    return GammaShapeRate(3.0 / 2.0, B / 2.0)
+    return GammaShapeRate(α, β)
 end
