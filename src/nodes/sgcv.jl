@@ -27,7 +27,8 @@ function ϕ(z, κ, ω, s)
     mω, Vω = mean(ω), cov(ω) 
     mz, vz = mean(z), cov(z)
     mκ, Vκ = mean(κ), cov(κ)
-    return clamp(exp(-ms'*mκ*mz - ms'*mω + 0.5((ms'*mκ)^2*vz + mz^2*ms'*Vκ*ms + ms'*Vκ*ms*vz + ms'*Vω*ms)),tiny,huge)
+    # return clamp(exp(-ms'*mκ*mz - ms'*mω + 0.5((ms'*mκ)^2*vz + mz^2*ms'*Vκ*ms + ms'*Vκ*ms*vz + ms'*Vω*ms)),tiny,huge)
+    ms'*(exp.(-mκ*mz .- mω + 0.5((mκ).^2 .* vz .+ mz^2 .*diag(Vκ) .+ diag(Vκ).*vz .+ diag(Vω))))
 end
 
 @average_energy SGCV (q_y_x::MultivariateNormalDistributionsFamily, q_z::NormalDistributionsFamily, q_κ::Any, q_ω::Any, q_s::Any) = begin
