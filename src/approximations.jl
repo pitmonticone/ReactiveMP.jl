@@ -100,8 +100,6 @@ function approximate_meancov(method::AbstractApproximationMethod, g::Function, m
     points  = getpoints(method, m, v)
 
     new_weights = weights .* g.(points) ./ sum(weights .* g.(points) )
-    @show g.(points)
-    sum(new_weights .* g.(points) ) 
     mean = sum(new_weights .* points)
     var = sum(new_weights .* (points .- mean).^2)
 

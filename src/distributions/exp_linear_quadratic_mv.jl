@@ -24,11 +24,14 @@ Distributions.cov(dist::MvExponentialLinearQuadratic)             = approximate_
 Distributions.var(dist::MvExponentialLinearQuadratic)             = diag(cov(dist))
 precision(dist::MvExponentialLinearQuadratic)                     = inv(cov(dist))
 invcov(dist::MvExponentialLinearQuadratic)                        = precision(dist)
-function prod(::ProdPreserveParametrisation, left::MultivariateNormalDistributionsFamily, right::MvExponentialLinearQuadratic)
+
+prod_analytical_rule(::Type{ <: MultivariateNormalDistributionsFamily }, ::Type{ <: MvExponentialLinearQuadratic }) = ProdAnalyticalRuleAvailable()
+
+function prod(::ProdAnalytical, left::MultivariateNormalDistributionsFamily, right::MvExponentialLinearQuadratic)
     mean, variance = approximate_meancov(right.approximation, (z) -> pdf(right, z), left)
     return MvNormalMeanCovariance(mean, variance)
 end
 
-function prod(::ProdPreserveParametrisation, left::MvExponentialLinearQuadratic, right::MultivariateNormalDistributionsFamily)
+function prod(::ProdAnalytical, left::MvExponentialLinearQuadratic, right::MultivariateNormalDistributionsFamily)
     return prod(ProdPreserveParametrisation(),right,left)
 end

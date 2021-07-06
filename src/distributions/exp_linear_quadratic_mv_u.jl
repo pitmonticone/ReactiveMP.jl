@@ -26,12 +26,14 @@ Distributions.var(dist::MvUniExponentialLinearQuadratic)             = diag(cov(
 
 precision(dist::MvUniExponentialLinearQuadratic)                    = cholinv(cov(dist))
 invcov(dist::MvUniExponentialLinearQuadratic)                       = precision(dist)
-function prod(::ProdPreserveParametrisation, left::UnivariateNormalDistributionsFamily, right::MvUniExponentialLinearQuadratic)
+
+prod_analytical_rule(::Type{ <: UnivariateNormalDistributionsFamily }, ::Type{ <: MvUniExponentialLinearQuadratic }) = ProdAnalyticalRuleAvailable()
+function prod(::ProdAnalytical, left::UnivariateNormalDistributionsFamily, right::MvUniExponentialLinearQuadratic)
     mean, variance = approximate_meancov(right.approximation, (z) -> pdf(right, z), left)
     return NormalMeanVariance(mean, variance)
 end
 
 
-function prod(::ProdPreserveParametrisation, left::MvUniExponentialLinearQuadratic , right::UnivariateNormalDistributionsFamily)
+function prod(::ProdAnalytical, left::MvUniExponentialLinearQuadratic , right::UnivariateNormalDistributionsFamily)
     return prod(ProdPreserveParametrisation(), right,left)
 end
