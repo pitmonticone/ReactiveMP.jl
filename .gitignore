@@ -11,6 +11,8 @@ demo/*WIP*
 .idea
 .vscode
 
+.vscode
+
 **/*.aux
 **/*.log
 **/*.synctex.*

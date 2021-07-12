@@ -93,3 +93,8 @@ include("autoregressive/marginals.jl")
 
 include("probit/in.jl")
 include("probit/out.jl")
+include("dense_relu/f.jl")
+include("dense_relu/w.jl")
+include("dense_relu/z.jl")
+include("dense_relu/input.jl")
+include("dense_relu/output.jl")
