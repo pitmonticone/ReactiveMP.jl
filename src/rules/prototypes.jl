@@ -93,3 +93,7 @@ include("autoregressive/marginals.jl")
 
 include("probit/in.jl")
 include("probit/out.jl")
+
+include("narmax/tau.jl")
+include("narmax/theta.jl")
+include("narmax/y.jl")

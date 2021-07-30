@@ -100,6 +100,7 @@ include("nodes/dot_product.jl")
 include("nodes/transition.jl")
 include("nodes/autoregressive.jl")
 include("nodes/probit.jl")
+include("nodes/narmax.jl")
 
 
 # Deterministic nodes
