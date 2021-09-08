@@ -27,7 +27,7 @@ function approximate_meancov(method::AbstractApproximationMethod, g::Function, m
 
         @inbounds cs[index] = cv
     end
-
+    
     mean /= norm
 
     var = 0.0
@@ -54,7 +54,6 @@ function approximate_meancov(method::AbstractApproximationMethod, g::Function, m
     for (index, (weight, point)) in enumerate(zip(weights, points))
         gv = g(point)
         cv = weight * gv
-
         # mean = mean + point * weight * g(point)
         broadcast!(*, point, point, cv)  # point *= cv
         broadcast!(+, mean, mean, point) # mean += point
@@ -62,6 +61,7 @@ function approximate_meancov(method::AbstractApproximationMethod, g::Function, m
 
         @inbounds cs[index] = cv
     end
+    
 
     broadcast!(/, mean, mean, norm)
 

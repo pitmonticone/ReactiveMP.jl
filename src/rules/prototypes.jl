@@ -93,3 +93,8 @@ include("autoregressive/marginals.jl")
 
 include("probit/in.jl")
 include("probit/out.jl")
+
+include("gp/out.jl")
+include("gp/prev.jl")
+include("gp/params.jl")
+include("gp/marginals.jl")
