@@ -19,7 +19,7 @@ default_meta(::Type{ SGCV }) = DefaultSGCVNodeMetadata
 
 function ψ(yx)
     m, V = mean(yx),cov(yx)
-    (m[1] - m[2])*(m[1] - m[2]) + V[1] + V[4] - V[3] - V[2]
+    (m[1] - m[2])*(m[1] - m[2]) + V[1,1] + V[2,2] - V[1,2] - V[2,1]
 end
 
 function ϕ(z, κ, ω, s)
