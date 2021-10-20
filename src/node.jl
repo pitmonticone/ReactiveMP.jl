@@ -682,7 +682,7 @@ function getmarginal!(factornode::FactorNode, localmarginal::FactorNodeLocalMarg
         return as_marginal_observable(vmarginal, skip_strategy)
     else
         cmarginal = MarginalObservable()
-
+        setstream!(localmarginal, cmarginal)
         message_dependencies  = tuple(getclusterinterfaces(factornode, clusterindex)...)
         marginal_dependencies = tuple(TupleTools.deleteat(localmarginals(factornode), clusterindex)...)
 
@@ -713,7 +713,7 @@ function getmarginal!(factornode::FactorNode, localmarginal::FactorNodeLocalMarg
 
         connect!(cmarginal, marginalout) # MarginalObservable has RecentSubject by default, there is no need to share_recent() here
 
-        setstream!(localmarginal, cmarginal)
+        # setstream!(localmarginal, cmarginal)
 
         return as_marginal_observable(cmarginal, skip_strategy)
     end
