@@ -68,7 +68,7 @@ end
 
     m, v = mean(q_y_x), cov(q_y_x)
     psi = (m[1] - m[2]) ^ 2 + v[1,1]+ v[2,2] -v[1,2] -v[2,1]
-    mean_z, v_z = mean(m_z), var(v_z)
+    mean_z, v_z = mean(m_z), var(m_z)
     A = approximate_expectation(get_approximation(meta),x -> exp(-x), m_ω)
     points = ReactiveMP.getpoints(get_approximation(meta),mean_z,v_z)
     weights = ReactiveMP.getweights(get_approximation(meta),mean_z,v_z)

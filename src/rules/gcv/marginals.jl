@@ -24,7 +24,6 @@ end
 end
 
 @marginalrule GCV(:y_x) (m_y::Any, m_x::Any, q_z_κ_ω::Any,met::GCVMetadata) = begin
-
     A = approximate_expectation(get_approximation(meta), x -> exp(-x[1]*x[2]-x[3]), q_z_κ_ω)
     W = [ precision(m_y) + A  -A ; -A  precision(m_x) + A  ]
     m = cholinv(W) * [ mean(m_y) * precision(m_y); mean(m_x) * precision(m_x) ]

@@ -685,7 +685,9 @@ function getmarginal!(factornode::FactorNode, localmarginal::FactorNodeLocalMarg
         return as_marginal_observable(vmarginal, skip_strategy)
     else
         cmarginal = MarginalObservable()
+
         setstream!(localmarginal, cmarginal)
+        
         message_dependencies  = tuple(getclusterinterfaces(factornode, clusterindex)...)
         marginal_dependencies = tuple(TupleTools.deleteat(localmarginals(factornode), clusterindex)...)
 

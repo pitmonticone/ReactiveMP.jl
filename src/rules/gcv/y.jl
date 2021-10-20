@@ -25,7 +25,6 @@ end
 end
 
 @rule GCV(:y, Marginalisation) (m_x::Any, q_z_κ_ω::Any,meta::GCVMetadata) = begin
-
     tmp1 = approximate_expectation(get_approximation(meta), x -> exp(-x[1]*x[2]-x[3]), q_z_κ_ω)
 
     return NormalMeanVariance(mean(m_x), var(m_x) + inv(tmp1))
