@@ -19,14 +19,19 @@ end
 
     m, v = mean(q_y_x), cov(q_y_x)
     psi = (m[1] - m[2]) ^ 2 + v[1,1]+ v[2,2] -v[1,2] -v[2,1]
-    mean_κ, v_κ = mean(m_κ), var(v_κ)
-    A = approximate_expectation(get_approximation(meta),x -> exp(-x), q_ω)
+    mean_κ, v_κ = mean(m_κ), var(m_κ)
+    # A = approximate_expectation(get_approximation(meta),x -> exp(-x), q_ω)
+    # points = ReactiveMP.getpoints(get_approximation(meta),mean_κ,v_κ)
+    # weights = ReactiveMP.getweights(get_approximation(meta),mean_κ,v_κ)
+
+    A = expectation(x -> exp(-x), Normal(mean(q_ω), std(q_ω)))
     points = ReactiveMP.getpoints(get_approximation(meta),mean_κ,v_κ)
     weights = ReactiveMP.getweights(get_approximation(meta),mean_κ,v_κ)
 
     b = psi * A
 
-    f = z -> -0.5*(mean_κ*z + b*sum(exp.(points .* (-z)) .* weights))
+    
+    f = z -> log(sum(exp.(-0.5*(points .* z + b*exp.(points .* (-z)) )) .* weights))
 
     return ContinuousUnivariateLogPdf(f)
 end
@@ -48,6 +53,9 @@ end
 
     return divide_marginals(dist, m_z) 
 end
+
+
+
 
 @rule GCV(:z, Marginalisation) (q_y::Any,q_x::Any, q_κ::Any, q_ω::Any, meta::GCVMetadata) = begin
 
@@ -82,4 +90,18 @@ end
     joint_m, joint_v = approximate_meancov(get_approximation(meta), f, m_zκω,v_zκω)
     
     return divide_marginals(NormalMeanVariance(joint_m[1],joint_v[1,1]), m_z)
+end
+
+
+@rule GCV(:z, Marginalisation) (m_y::Any, m_x::Any,q_κ::Any, q_ω::Any,meta::GCVMetadata) = begin
+
+    tmp2 = approximate_expectation(get_approximation(meta), x -> exp(-x) , q_ω)
+    mean_κ, v_κ = mean_cov(q_κ)
+    points = ReactiveMP.getpoints(get_approximation(meta),mean_κ,v_κ)
+    weights = ReactiveMP.getweights(get_approximation(meta),mean_κ,v_κ)
+
+    h = z -> sum(exp.(-0.5*(points .* z  )) .* weights)
+    f = x -> -0.5*( mean(q_κ)*x + 2*pi*(var(m_x)+var(m_y) + inv(tmp2*h(x))) + inv(var(m_x)+var(m_y))*(mean(m_x)-mean(m_y)^2))
+
+    return ContinuousUnivariateLogPdf(f)
 end

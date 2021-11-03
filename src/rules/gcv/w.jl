@@ -20,12 +20,16 @@ end
 @rule GCV(:ω, Marginalisation) (q_y_x::Any, q_z_κ::Any, meta::GCVMetadata) = begin
     
     m, v = mean(q_y_x), cov(q_y_x)
+    m_zκ, v_zκ = mean_cov(q_z_κ)
     tmp1 = approximate_expectation(get_approximation(meta), x -> exp(-x[1]*x[2]), q_z_κ)
+    tmp2 = approximate_expectation(get_approximation(meta), x -> x[1]*x[2], q_z_κ)
+
+  
     psi = (m[1] - m[2]) ^ 2 + v[1, 1] + v[2, 2] - v[1, 2] - v[2, 1]
 
     b = psi * tmp1
 
-    f = ω -> -0.5*(ω+ b*exp(-ω))
+    f = ω -> -0.5*(tmp2 + ω+ b*exp(-ω))
 
     return ContinuousUnivariateLogPdf(f)
 end
@@ -56,8 +60,6 @@ end
     points = ReactiveMP.getpoints(get_approximation(meta),mean_z,v_z)
     weights = ReactiveMP.getweights(get_approximation(meta),mean_z,v_z)
 
-    
-
     f = x -> exp(-0.5*(x[1]*x[2] + psi*exp(-x[1]x[2] - x[3])) + logpdf(m_z,x[1]) + logpdf(m_κ,x[2]) +logpdf(m_ω,x[3]))
     m_zκω = [mean(m_z); mean(m_κ); mean(m_ω)]
     v_zκω  = [var(m_z) 0.0 0.0; 0.0 var(m_κ) 0.0; 0.0 0.0 var(m_ω)]
@@ -65,4 +67,21 @@ end
     joint_m, joint_v = approximate_meancov(get_approximation(meta), f, m_zκω,v_zκω)
     
     return divide_marginals(NormalMeanVariance(joint_m[3],joint_v[3,3]), m_ω)
+end
+
+@rule GCV(:ω, Marginalisation) (q_y_x_z::Any, q_κ::Any, meta::GCVMetadata) = begin
+
+    m, v = mean(q_y_x_z), cov(q_y_x_z)
+    psi = (m[1] - m[2]) ^ 2 + v[1,1]+ v[2,2] -v[1,2] -v[2,1]
+    points = ReactiveMP.getpoints(get_approximation(meta),m[3],v[3,3])
+    weights = ReactiveMP.getweights(get_approximation(meta),m[3],v[3,3])
+
+    γ = m[3] ^ 2 * var(q_κ) + mean(q_κ) ^ 2 * v[3,3] + v[3,3] * var(q_κ)
+    A = exp(-mean(q_κ) * m[3] + γ / 2)
+
+    b = psi * A
+    h = κ -> sum(exp.(-0.5*(points .* κ  )) .* weights)
+    f = ω -> -0.5*(ω + b*exp(-ω))
+
+    return ContinuousUnivariateLogPdf(f)
 end

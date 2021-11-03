@@ -14,6 +14,24 @@ export rule
     return NormalMeanVariance(y_mean, y_var + inv(A * B))
 end
 
+@rule GCV(:x, Marginalisation) (m_y::Any,  m_z::Any, q_κ::Any, q_ω::Any,meta::GCVMetadata) = begin
+   
+
+    tmp2 = approximate_expectation(get_approximation(meta), x -> exp(-x) , q_ω)
+    mean_κ, v_κ = mean_cov(q_κ)
+    points = ReactiveMP.getpoints(get_approximation(meta),mean_κ,v_κ)
+    weights = ReactiveMP.getweights(get_approximation(meta),mean_κ,v_κ)
+
+    h = z -> sum(exp.(-0.5*(points .* z  )) .* weights)
+
+    points_z = ReactiveMP.getpoints(get_approximation(meta),mean(m_y),var(m_y))
+    weights_z = ReactiveMP.getweights(get_approximation(meta),mean(m_y),var(m_y))
+
+    f = x -> log(sum( exp.(-0.5.* tmp2 .* (x - mean(m_y)^2 ) ./ (var(m_y) .+ h.(points_z))) .* weights_z))
+
+    return ContinuousUnivariateLogPdf(f)
+end
+
 
 @rule GCV(:x, Marginalisation) (m_y::Any, q_z_κ::Any, q_ω::Any,meta::GCVMetadata) = begin
     m_zk = mean(q_z_κ)

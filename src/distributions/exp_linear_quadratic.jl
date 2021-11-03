@@ -65,4 +65,7 @@ function prod(::ProdAnalytical, left::ExponentialLinearQuadratic, right::Univari
     return NormalMeanVariance(mean, variance)
 end
 
-
+function prod(::ProdAnalytical, left::ExponentialLinearQuadratic,right::ExponentialLinearQuadratic)
+    mean, variance = approximate_meancov(left.approximation, (z) -> pdf(left, z)*pdf(right,z)*exp(0.5z^2), NormalMeanVariance(0,1))
+    return NormalMeanVariance(mean,variance)
+end

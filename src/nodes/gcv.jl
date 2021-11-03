@@ -1,3 +1,4 @@
+using Expectations
 export GCV, GCVMetadata
 
 import StatsFuns: log2π
@@ -75,24 +76,29 @@ end
     
 
     tmp1 = approximate_expectation(get_approximation(meta), x -> exp(-x[1]*x[2]), q_z_κ)
-    tmp2 = approximate_expectation(get_approximation(meta), x -> exp(-x) , q_ω)
-    tmp3 = approximate_expectation(get_approximation(meta), x -> x[1]*x[2],q_z_κ)
+    # tmp2 = approximate_expectation(get_approximation(meta), x -> exp(-x) , q_ω)
+    tmp3 = approximate_expectation(get_approximation(meta), x -> x[1]*x[2], q_z_κ)
+
+    tmp2 = expectation( x -> exp(-x) , Normal(mean(q_ω),var(q_ω)))
 
     0.5 * log2π + 0.5 * (tmp3+ mean(q_ω)) + 0.5 * (psi * tmp1 * tmp2)
 end
 
-@average_energy GCV (q_y_x::MultivariateNormalDistributionsFamily, q_z_κ::Any, q_ω::Any) = begin
-    m, c = mean(q_y_x), cov(q_y_x)
+@average_energy GCV (q_y_x_z::MultivariateNormalDistributionsFamily, q_κ::Any, q_ω::Any) = begin
+    m, c = mean(q_y_x_z), cov(q_y_x_z)
 
    
     psi = (m[2] - m[1]) ^ 2 + c[1, 1] + c[2, 2] - c[1, 2] - c[2, 1]
     
+    q_z_κ = MvNormalMeanCovariance([m[3], mean(q_κ)], [c[3,3] 0.0; 0.0 var(q_κ)])
+    tmp1 = approximate_expectation(get_approximation(meta), x -> exp(-x[1]*x[2]), q_z_κ)
+    tmp3 = approximate_expectation(get_approximation(meta), x -> x[1]*x[2], q_z_κ)
 
-    tmp1 = approximate_expectation(get_approximation(meta), x -> exp(-x[1]*x[2]-x[3]), q_z_κ_ω)
-    tmp2 = approximate_expectation(get_approximation(meta), x -> x[1]*x[2]+x[3],q_z_κ)
+    tmp2 = approximate_expectation( get_approximation(meta), x -> exp(-x) , NormalMeanVariance(mean(q_ω),var(q_ω)))
 
-    0.5 * log2π + 0.5 * tmp2 + 0.5 * (psi * tmp1 )
+    0.5 * log2π + 0.5 * (tmp3+ mean(q_ω)) + 0.5 * (psi * tmp1 * tmp2)
 end
+
 
 @average_energy GCV (q_y_x::MultivariateNormalDistributionsFamily, q_z_κ_ω::Any) = begin
     m, c = mean(q_y_x), cov(q_y_x)
