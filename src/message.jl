@@ -180,7 +180,7 @@ reduce_messages(messages) = mapreduce(as_message, (left, right) -> multiply_mess
 ## Message observable 
 
 struct MessageObservable{M <: AbstractMessage} <: Subscribable{M}
-    subject :: Rocket.RecentSubjectInstance{M, Subject{M, AsapScheduler, AsapScheduler}}
+    subject :: Rocket.RecentSubject{M, Subject{M, AsapScheduler}}
     stream  :: LazyObservable{M}
 end
 
@@ -194,18 +194,9 @@ end
 
 Rocket.getrecent(observable::MessageObservable) = Rocket.getrecent(observable.subject)
 
-@inline Rocket.on_subscribe!(observable::MessageObservable, actor) = subscribe!(observable.stream, actor)
-
-@inline Rocket.subscribe!(observable::MessageObservable, actor::Rocket.Actor{ <: AbstractMessage })           = Rocket.on_subscribe!(observable.stream, actor)
-@inline Rocket.subscribe!(observable::MessageObservable, actor::Rocket.NextActor{ <: AbstractMessage })       = Rocket.on_subscribe!(observable.stream, actor)
-@inline Rocket.subscribe!(observable::MessageObservable, actor::Rocket.ErrorActor{ <: AbstractMessage })      = Rocket.on_subscribe!(observable.stream, actor)
-@inline Rocket.subscribe!(observable::MessageObservable, actor::Rocket.CompletionActor{ <: AbstractMessage }) = Rocket.on_subscribe!(observable.stream, actor)
-
-@inline Rocket.subscribe!(observable::MessageObservable, actor::Rocket.Subject{ <: AbstractMessage })                 = Rocket.on_subscribe!(observable.stream, actor)
-@inline Rocket.subscribe!(observable::MessageObservable, actor::Rocket.BehaviorSubjectInstance{ <: AbstractMessage }) = Rocket.on_subscribe!(observable.stream, actor)
-@inline Rocket.subscribe!(observable::MessageObservable, actor::Rocket.PendingSubjectInstance{ <: AbstractMessage })  = Rocket.on_subscribe!(observable.stream, actor)
-@inline Rocket.subscribe!(observable::MessageObservable, actor::Rocket.RecentSubjectInstance{ <: AbstractMessage })   = Rocket.on_subscribe!(observable.stream, actor)
-@inline Rocket.subscribe!(observable::MessageObservable, actor::Rocket.ReplaySubjectInstance{ <: AbstractMessage })   = Rocket.on_subscribe!(observable.stream, actor)
+function Rocket.on_subscribe!(observable::MessageObservable, actor) 
+    return subscribe!(observable.stream, actor)
+end
 
 function connect!(message::MessageObservable, source)
     set!(message.stream, source |> multicast(message.subject) |> ref_count())
@@ -268,7 +259,5 @@ function (mapping::MessageMapping)(dependencies)
 
     return Message(message, is_message_clamped, is_message_initial)
 end
-
-Base.map(::Type{T}, mapping::M) where { T, M <: MessageMapping } = Rocket.MapOperator{T, M}(mapping)
 
 

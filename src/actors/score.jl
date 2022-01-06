@@ -7,7 +7,7 @@ mutable struct ScoreActorProps
     is_released :: Bool
 end
 
-struct ScoreActor{L} <: Rocket.Actor{L}
+struct ScoreActor{L}
     score :: Vector{L}
     inds  :: Vector{Int}
     props :: ScoreActorProps
@@ -18,7 +18,7 @@ ScoreActor(::Type{L}) where { L <: Real } = ScoreActor{L}(Vector{L}(), Vector{In
 
 Base.show(io::IO, ::ScoreActor) = print(io, "ScoreActor()")
 
-function Rocket.on_next!(actor::ScoreActor{L}, data::L) where L 
+function Rocket.on_next!(actor::ScoreActor, data)
     actor.props.count += 1
     actor.props.is_released = false
     push!(actor.score, data)

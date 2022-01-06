@@ -84,9 +84,9 @@ apply_skip_filter(observable, ::SkipInitial)           = observable |> filter(v 
 apply_skip_filter(observable, ::SkipClampedAndInitial) = observable |> filter(v -> !is_initial(v) && !is_clamped(v))
 apply_skip_filter(observable, ::IncludeAll)            = observable
 
-struct MarginalObservable <: Subscribable{ Marginal }
-    subject :: Rocket.RecentSubjectInstance{ Marginal, Subject{ Marginal, AsapScheduler, AsapScheduler } }
-    stream  :: LazyObservable{ Marginal }
+struct MarginalObservable <: Subscribable{Marginal}
+    subject :: Rocket.RecentSubject{Marginal, Subject{Marginal, AsapScheduler}}
+    stream  :: LazyObservable{Marginal}
 end
 
 MarginalObservable() = MarginalObservable(RecentSubject(Marginal), lazy(Marginal))   
@@ -104,18 +104,9 @@ Rocket.getrecent(observable::MarginalObservable) = Rocket.getrecent(observable.s
 Rocket.getrecent(observables::Tuple)             = Rocket.getrecent.(observables)
 Rocket.getrecent(::Nothing)                      = nothing
 
-@inline Rocket.on_subscribe!(observable::MarginalObservable, actor) = subscribe!(observable.stream, actor)
-
-@inline Rocket.subscribe!(observable::MarginalObservable, actor::Rocket.Actor{ <: Marginal })           = Rocket.on_subscribe!(observable.stream, actor)
-@inline Rocket.subscribe!(observable::MarginalObservable, actor::Rocket.NextActor{ <: Marginal })       = Rocket.on_subscribe!(observable.stream, actor)
-@inline Rocket.subscribe!(observable::MarginalObservable, actor::Rocket.ErrorActor{ <: Marginal })      = Rocket.on_subscribe!(observable.stream, actor)
-@inline Rocket.subscribe!(observable::MarginalObservable, actor::Rocket.CompletionActor{ <: Marginal }) = Rocket.on_subscribe!(observable.stream, actor)
-
-@inline Rocket.subscribe!(observable::MarginalObservable, actor::Rocket.Subject{ <: Marginal })                 = Rocket.on_subscribe!(observable.stream, actor)
-@inline Rocket.subscribe!(observable::MarginalObservable, actor::Rocket.BehaviorSubjectInstance{ <: Marginal }) = Rocket.on_subscribe!(observable.stream, actor)
-@inline Rocket.subscribe!(observable::MarginalObservable, actor::Rocket.PendingSubjectInstance{ <: Marginal })  = Rocket.on_subscribe!(observable.stream, actor)
-@inline Rocket.subscribe!(observable::MarginalObservable, actor::Rocket.RecentSubjectInstance{ <: Marginal })   = Rocket.on_subscribe!(observable.stream, actor)
-@inline Rocket.subscribe!(observable::MarginalObservable, actor::Rocket.ReplaySubjectInstance{ <: Marginal })   = Rocket.on_subscribe!(observable.stream, actor)
+function Rocket.on_subscribe!(observable::MarginalObservable, actor) 
+    return subscribe!(observable.stream, actor)
+end
 
 function connect!(marginal::MarginalObservable, source)
     set!(marginal.stream, source |> multicast(marginal.subject) |> ref_count())
@@ -176,5 +167,3 @@ function (mapping::MarginalMapping)(dependencies)
 
     return Marginal(marginal, is_marginal_clamped, is_marginal_initial)
 end
-
-Base.map(::Type{T}, mapping::M) where { T, M <: MarginalMapping } = Rocket.MapOperator{T, M}(mapping)

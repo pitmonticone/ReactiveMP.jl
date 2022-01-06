@@ -69,13 +69,14 @@ finish!(datavar::DataVariable) = complete!(messageout(datavar, 1))
 
 get_pipeline_stages(::DataVariable) = EmptyPipelineStage()
 
-_getmarginal(datavar::DataVariable)              = datavar.messageout |> map(Marginal, as_marginal)
+_getmarginal(datavar::DataVariable)              = datavar.messageout |> map(OpType(Marginal), as_marginal)
 _setmarginal!(datavar::DataVariable, observable) = error("It is not possible to set a marginal stream for `DataVariable`")
 _makemarginal(datavar::DataVariable)             = error("It is not possible to make marginal stream for `DataVariable`")
 
 # Extension for _getmarginal
-function Rocket.getrecent(proxy::ProxyObservable{ <: Marginal, S, M }) where { S <: Rocket.RecentSubjectInstance, D, M <: Rocket.MapProxy{D, typeof(as_marginal)} }
-    return as_marginal(Rocket.getrecent(proxy.proxied_source))
+# TODO Rocket 2.0
+function Rocket.getrecent(source::Rocket.MapSubscribable{Marginal, typeof(as_marginal), <: RecentSubject}) 
+    return as_marginal(Rocket.getrecent(source.source))
 end
 
 function setmessagein!(datavar::DataVariable, ::Int, messagein)

@@ -61,11 +61,6 @@ _getmarginal(constvar::ConstVariable)      = of(Marginal(constvar.constant, true
 _setmarginal!(::ConstVariable, observable) = error("It is not possible to set a marginal stream for `ConstVariable`")
 _makemarginal(::ConstVariable)             = error("It is not possible to make marginal stream for `ConstVariable`")
 
-# For _getmarginal
-function Rocket.getrecent(observable::SingleObservable{ <: Marginal })
-    return observable.value
-end
-
 function setmessagein!(constvar::ConstVariable, ::Int, messagein) 
     constvar.nconnected += 1
     return nothing

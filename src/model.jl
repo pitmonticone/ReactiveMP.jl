@@ -156,7 +156,7 @@ function repeat!(callback::Function, model::Model, criterion::UntilConvergence{S
         (p) -> abs(p[1] - p[2]) < tolerance
     end
 
-    source = score(F, criterion.score_type, model, AsapScheduler()) |> pairwise() |> map(Bool, stopping_fn)
+    source = score(F, criterion.score_type, model, AsapScheduler()) |> pairwise() |> map(OpType(Bool), stopping_fn)
 
     is_satisfied     = false
     iterations_count = 0

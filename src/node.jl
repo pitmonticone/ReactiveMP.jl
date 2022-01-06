@@ -329,7 +329,7 @@ See also: [`FactorNodeLocalMarginals`](@ref)
 mutable struct FactorNodeLocalMarginal 
     index  :: Int
     name   :: Symbol
-    stream :: Union{Nothing, AbstractSubscribable{<:Marginal}}
+    stream :: Union{Nothing, Subscribable{<:Marginal}}
 
     FactorNodeLocalMarginal(index::Int, name::Symbol) = new(index, name, nothing)
 end
@@ -634,7 +634,7 @@ function activate!(model, factornode::AbstractFactorNode)
             mapping = MessageMapping(fform, vtag, vconstraint, msgs_names, marginal_names, meta, factornode)
             mapping = apply_mapping(msgs_observable, marginals_observable, mapping)
 
-            vmessageout = vmessageout |> map(AbstractMessage, mapping)
+            vmessageout = vmessageout |> map(OpType(AbstractMessage), mapping)
             vmessageout = apply_pipeline_stage(get_pipeline_stages(getoptions(model)), factornode, vtag, vmessageout)
             vmessageout = apply_pipeline_stage(node_pipeline_extra_stages, factornode, vtag, vmessageout)
             vmessageout = vmessageout |> schedule_on(global_reactive_scheduler(getoptions(model)))
@@ -705,7 +705,7 @@ function getmarginal!(factornode::FactorNode, localmarginal::FactorNodeLocalMarg
 
         mapping = MarginalMapping(fform, vtag, msgs_names, marginal_names, meta, factornode)
         # TODO: discontinue operator is needed for loopy belief propagation? Check
-        marginalout = combineLatest((msgs_observable, marginals_observable), PushNew()) |> discontinue() |> map(Marginal, mapping)
+        marginalout = combineLatest((msgs_observable, marginals_observable), PushNew()) |> discontinue() |> map(OpType(Marginal), mapping)
 
         connect!(cmarginal, marginalout) # MarginalObservable has RecentSubject by default, there is no need to share_recent() here
 
@@ -757,7 +757,7 @@ function make_node(fform::Function, autovar::AutoVar, args::Vararg{ <: DataVaria
         (d::Tuple) -> Message(fform(d...), false, false)
     end
 
-    subject = combineLatest(tuple(map((a) -> messageout(a, getlastindex(a)) |> map(Any, (d) -> mean(getdata(d))), args)...), PushNew()) |> map(Message, message_cb)
+    subject = combineLatest(tuple(map((a) -> messageout(a, getlastindex(a)) |> map(OpType(Any), (d) -> mean(getdata(d))), args)...), PushNew()) |> map(OpType(Message), message_cb)
     var     = datavar(getname(autovar), Any, subject = subject)
     
     return nothing, var

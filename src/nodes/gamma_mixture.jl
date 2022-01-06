@@ -154,7 +154,7 @@ function score(::Type{T}, objective::BetheFreeEnergy, ::FactorBoundFreeEnergy, :
         end
     end
 
-    return stream |> map(T, mapping)
+    return stream |> map(OpType(T), mapping)
 end
 
 as_node_functional_form(::Type{ <: GammaMixture }) = ValidNodeFunctionalForm()

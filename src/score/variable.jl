@@ -6,5 +6,5 @@ function score(::Type{T}, objective::BetheFreeEnergy, ::VariableBoundEntropy, va
     mapping = let d = degree(variable)
         (marginal) -> convert(T, (d - 1) * score(DifferentialEntropy(), marginal))
     end
-    return getmarginal(variable, marginal_skip_strategy(objective)) |> schedule_on(scheduler) |> map(T, mapping)
+    return getmarginal(variable, marginal_skip_strategy(objective)) |> schedule_on(scheduler) |> map(OpType(T), mapping)
 end

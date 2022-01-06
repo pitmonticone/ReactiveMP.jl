@@ -24,7 +24,7 @@ function score(::Type{T}, objective::BetheFreeEnergy, ::FactorBoundFreeEnergy, :
         end
     end
 
-    return stream |> map(T, mapping)
+    return stream |> map(OpType(T), mapping)
 end
 
 ## Stochastic mapping
@@ -40,5 +40,5 @@ function score(::Type{T}, objective::BetheFreeEnergy, ::FactorBoundFreeEnergy, :
         end
     end
 
-    return stream |> map(T, mapping)
+    return stream |> map(OpType(T), mapping)
 end
