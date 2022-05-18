@@ -2,8 +2,8 @@ export inference, InferenceResult, KeepEach, KeepLast
 
 import ProgressMeter
 
-obtain_marginal(variable::AbstractVariable)                      = getmarginal(variable)
-obtain_marginal(variables::AbstractArray{ <: AbstractVariable }) = getmarginals(variables)
+obtain_marginal(variable::AbstractVariable)                      = getmarginal(variable, IncludeAll())
+obtain_marginal(variables::AbstractArray{ <: AbstractVariable }) = getmarginals(variables, IncludeAll())
 
 assign_marginal!(variables::AbstractArray{ <: AbstractVariable }, marginals) = setmarginals!(variables, marginals)
 assign_marginal!(variable::AbstractVariable, marginal)                       = setmarginal!(variable, marginal)
@@ -39,11 +39,12 @@ ensure_update(model::FactorGraphModel, ::Nothing, variable_name::Symbol, updated
 __inference_process_error(error) = rethrow(error)
 
 function __inference_process_error(err::StackOverflowError)
-    error("""
+    @error """
         Stack overflow error occurred during the inference procedure. 
         The dataset size might be causing this error. 
         To resolve this issue, try using `limit_stack_depth` option when creating a model. See also: `?model_options`
-    """)
+    """
+    rethrow(err)
 end
 ##
 
@@ -267,8 +268,16 @@ function inference(;
     # Inference cycle callbacks
     callbacks = nothing,
     # warn, optional, defaults to true
-    warn = true
+    warn = true,
+    priority = nothing
 )
+    if priority === nothing
+        error(1)
+    end
+
+    phandler = PriorityHandler(priority)
+    pipeline = PriorityPipelineStage(phandler)
+    options  = merge(options, (pipeline = pipeline, ))
 
     inference_invoke_callback(callbacks, :before_model_creation)
     fmodel, freturval = create_model(model, constraints, meta, options)
@@ -297,6 +306,7 @@ function inference(;
         on_marginal_update = inference_get_callback(callbacks, :on_marginal_update)
         subscriptions      = Dict(variable => subscribe!(obtain_marginal(vardict[variable]) |> ensure_update(fmodel, on_marginal_update, variable, updates[variable]), actor) for (variable, actor) in pairs(actors))
         
+        fe_scheduler    = PendingScheduler()
         fe_actor        = nothing
         fe_subscription = VoidTeardown()
 
@@ -304,7 +314,7 @@ function inference(;
         
         if is_free_energy
             fe_actor        = ScoreActor(S)
-            fe_subscription = subscribe!(score(T, BetheFreeEnergy(), fmodel), fe_actor)
+            fe_subscription = subscribe!(score(T, BetheFreeEnergy(), fmodel, fe_scheduler), fe_actor)
         end
 
         if !isnothing(initmarginals)
@@ -353,6 +363,10 @@ function inference(;
             inference_invoke_callback(callbacks, :before_data_update, fmodel, data)
             for (key, value) in fdata
                 update!(vardict[key], value)
+            end
+            release!(phandler)
+            if iteration > 3
+                release!(fe_scheduler)
             end
             inference_invoke_callback(callbacks, :after_data_update, fmodel, data)
             not_updated = filter((pair) -> !last(pair).updated, updates)

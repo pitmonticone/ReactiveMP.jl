@@ -77,6 +77,7 @@ include("pipeline/async.jl")
 include("pipeline/discontinue.jl")
 include("pipeline/logger.jl")
 include("pipeline/vague.jl")
+include("pipeline/priority.jl")
 
 include("rule.jl")
 
